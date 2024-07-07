@@ -14,3 +14,4 @@ from .hopper import HopperEnv
 from .humanoid import HumanoidEnv
 from .snu_humanoid import SNUHumanoidEnv
 from .double_pendulum import DoublePendulumEnv
+from .gym_trade import TradingEnv

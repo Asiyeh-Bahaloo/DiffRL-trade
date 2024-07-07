@@ -10,7 +10,7 @@ general:
   train: True # if False, we're in eval mode
   logdir: logs
   render: False
-  device: cuda:0
+  device: cpu
   run_wandb: False
   seed: 42
   checkpoint:
