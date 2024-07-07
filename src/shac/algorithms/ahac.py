@@ -102,7 +102,9 @@ class AHAC:
         self.steps_min = steps_min
         self.steps_max = steps_max
         self.H = torch.tensor(steps_min, dtype=torch.float32, device=self.device)
-        self.lambd = torch.tensor([0.0]*steps_min, dtype=torch.float32, device=self.device)
+        self.lambd = torch.tensor(
+            [0.0] * steps_min, dtype=torch.float32, device=self.device
+        )
         self.C = contact_threshold
         self.max_epochs = max_epochs
         self.actor_lr = actor_lr
@@ -310,8 +312,8 @@ class AHAC:
             # uses contact forces since they are always available
             cfs = info["contact_forces"]
             acc = info["accelerations"]
-            acc[acc >= 0] = torch.maximum(acc[acc>=0], torch.ones_like(acc[acc>=0]))
-            acc[acc < 0] = torch.maximum(acc[acc<0], torch.ones_like(acc[acc<0]))
+            acc[acc >= 0] = torch.maximum(acc[acc >= 0], torch.ones_like(acc[acc >= 0]))
+            acc[acc < 0] = torch.maximum(acc[acc < 0], torch.ones_like(acc[acc < 0]))
             # cfs_normalised = torch.where(acc != 0.0, cfs / acc, torch.zeros_like(cfs))
             cfs_normalised = cfs / acc
             self.cfs[i] = torch.norm(cfs_normalised, dim=(1, 2))
@@ -353,11 +355,13 @@ class AHAC:
             self.horizon_truncs.append(i == self.steps_num - 1)
             self.episode_ends.append(torch.all(trunc).item())
 
-            done = term | trunc
+            done = term | trunc | torch.tensor([True])
             done_env_ids = done.nonzero(as_tuple=False).squeeze(-1)
 
             self.early_termination += torch.sum(term).item()
             self.episode_end += torch.sum(trunc).item()
+
+            actor_loss += rew.sum()
 
             if i < self.steps_num - 1:
                 # first terminate all rollouts which are 'done'
@@ -645,7 +649,9 @@ class AHAC:
                 for param_group in self.critic_optimizer.param_groups:
                     param_group["lr"] = critic_lr
 
-                lambd_lr = (1e-5 - self.lambd_lr) * epoch / self.max_epochs + self.lambd_lr
+                lambd_lr = (
+                    1e-5 - self.lambd_lr
+                ) * epoch / self.max_epochs + self.lambd_lr
             else:
                 lr = self.actor_lr
                 lambd_lr = self.lambd_lr
@@ -841,30 +847,28 @@ class AHAC:
         self.close()
 
     def init_buffers(self):
-            self.obs_buf = torch.zeros(
-                (self.steps_num, self.num_envs, self.num_obs),
-                dtype=torch.float32,
-                device=self.device,
-            )
-            self.rew_buf = torch.zeros(
-                (self.steps_num, self.num_envs), dtype=torch.float32, device=self.device
-            )
-            self.done_mask = torch.zeros(
-                (self.steps_num, self.num_envs), dtype=torch.float32, device=self.device
-            )
-            self.next_values = torch.zeros(
-                (self.steps_num, self.num_envs), dtype=torch.float32, device=self.device
-            )
-            self.target_values = torch.zeros(
-                (self.steps_num, self.num_envs), dtype=torch.float32, device=self.device
-            )
-            self.ret = torch.zeros(
-                (self.num_envs), dtype=torch.float32, device=self.device
-            )
-            self.cfs = torch.zeros(
-                (self.steps_num, self.num_envs), dtype=torch.float32, device=self.device
-            )
-            self.lambd = self.lambd[0].repeat(self.steps_num)
+        self.obs_buf = torch.zeros(
+            (self.steps_num, self.num_envs, self.num_obs),
+            dtype=torch.float32,
+            device=self.device,
+        )
+        self.rew_buf = torch.zeros(
+            (self.steps_num, self.num_envs), dtype=torch.float32, device=self.device
+        )
+        self.done_mask = torch.zeros(
+            (self.steps_num, self.num_envs), dtype=torch.float32, device=self.device
+        )
+        self.next_values = torch.zeros(
+            (self.steps_num, self.num_envs), dtype=torch.float32, device=self.device
+        )
+        self.target_values = torch.zeros(
+            (self.steps_num, self.num_envs), dtype=torch.float32, device=self.device
+        )
+        self.ret = torch.zeros((self.num_envs), dtype=torch.float32, device=self.device)
+        self.cfs = torch.zeros(
+            (self.steps_num, self.num_envs), dtype=torch.float32, device=self.device
+        )
+        self.lambd = self.lambd[0].repeat(self.steps_num)
 
     def save(self, filename=None):
         if filename is None:
