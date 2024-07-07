@@ -1,0 +1,49 @@
+FROM ubuntu:22.04
+ENV PATH="/root/miniconda3/bin:${PATH}"
+ARG PATH="/root/miniconda3/bin:${PATH}"
+MAINTAINER Asiyeh Bahaloo
+
+## setting timezone
+ENV TZ="America/New_York"
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+## installing Python 3.11
+RUN apt-get update && \
+	apt-get install -y software-properties-common wget curl htop build-essential && \
+	add-apt-repository ppa:deadsnakes/ppa && \
+	apt-get update && \
+	apt-get install -y python3.11 python3.11-dev python3-pip python3.11-distutils && \
+	ln -s /usr/bin/python3.11 /usr/bin/python && \
+	curl https://bootstrap.pypa.io/get-pip.py | python && \
+	pip install --upgrade pip && \
+	apt-get purge -y --auto-remove build-essential python3.11-dev && \
+	apt-get clean && \
+	rm -rf /var/lib/apt/lists/*
+## Done with python installation 
+
+# Install Conda via shell script. 
+RUN wget \
+https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
+&& mkdir /root/.conda \
+&& bash Miniconda3-latest-Linux-x86_64.sh -b \
+&& rm -f Miniconda3-latest-Linux-x86_64.sh 
+RUN conda --version
+
+COPY environment.yml /tmp 
+RUN conda env update --name diffrl -f /tmp/environment.yml
+
+RUN	conda init && \
+	exec bash && \
+	. /root/.bashrc && \
+ 	conda activate diffrl && \
+	apt-get update && \
+	apt-get install -y software-properties-common wget curl htop build-essential && \
+	pip install -e dflex && \
+	pip install -e .
+	
+# set work directory
+WORKDIR /usr/src/app
+
+SHELL ["conda", "run", "--no-capture-output", "-n", "diffrl", "/bin/bash", "-c"]
+
+

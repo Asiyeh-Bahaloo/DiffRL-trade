@@ -1,0 +1,21 @@
+version: "3.6"
+services:
+    DRL:
+        build: 
+          dockerfile: ./Dockerfile.dev
+          context: ./
+        container_name: DRL-container
+        image: DRL/base:latest
+        ports:
+          - "6666:6666"
+          - "8888:8888"
+          - "8000:8000"
+          - "5000:5000"
+        volumes:
+          - ./:/usr/src/app
+        environment:
+          - PYTHONPATH=/usr/src/app
+        working_dir: /usr/src/app
+        # command: jupyter notebook  --ip='*' --port=8888 --no-browser --allow-root
+        tty: true 
+        restart: unless-stopped

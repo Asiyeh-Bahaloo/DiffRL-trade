@@ -23,3 +23,5 @@ dependencies:
       - black
       - tensorboardX
       - rl_games==1.5.*
+      - charset-normalizer==3.3.2
+      - gym-trading-env
